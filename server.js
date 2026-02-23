@@ -163,11 +163,10 @@ app.post('/api/analyze-video', async (req, res) => {
   try {
     fs.mkdirSync(framesDir, { recursive: true });
 
-    // 1. Download video (max 480p, max 20 min)
+    // 1. Download video (max 480p, filesize capped at 150MB)
     const videoOut = path.join(tempDir, 'video.%(ext)s');
     await execAsync(
       `yt-dlp -o "${videoOut}" --no-playlist --max-filesize 150m ` +
-      `--match-filter "duration < 1200" ` +
       `-f "bestvideo[height<=480]+bestaudio/best[height<=480]/best" ` +
       `"${url}"`,
       { timeout: 120000 }
@@ -275,7 +274,7 @@ Talk like a creative director, not a cheerleader. Reference specific things you 
     console.error('Video analysis error:', err.message);
     const msg =
       /private/i.test(err.message) ? 'That video is private — paste a public URL.' :
-      /1200|duration|too long/i.test(err.message) ? 'Video is too long — max 20 minutes.' :
+      /too long/i.test(err.message) ? 'Video is too long — max 20 minutes.' :
       /unavailable|not available/i.test(err.message) ? 'Video unavailable. Make sure the URL is public.' :
       'Could not analyze that video. Make sure the URL is public and try again.';
     res.status(500).json({ error: msg });
