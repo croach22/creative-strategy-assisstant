@@ -551,6 +551,86 @@
       text-align: center;
     }
 
+    /* ── Video analysis UI ───────────────────────────────────── */
+    .video-url-row {
+      max-width: 760px;
+      margin: 0 auto 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #video-url-input {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 14px;
+      color: var(--text-1);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 10px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #video-url-input::placeholder { color: var(--text-3); }
+
+    #video-url-input:focus {
+      border-color: rgba(99,102,241,0.65);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .analyze-btn {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 14px;
+      color: var(--text-1);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .analyze-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35));
+      border-color: rgba(99,102,241,0.55);
+    }
+
+    .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .video-toggle-link {
+      background: none;
+      border: none;
+      color: rgba(99,102,241,0.75);
+      font-size: 11.5px;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .video-toggle-link:hover { color: #a78bfa; }
+
+    /* Analysis result card */
+    .analysis-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a5b4fc;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
     /* ── Utility ─────────────────────────────────────────────── */
     .sr-only {
       position: absolute; width: 1px; height: 1px;
@@ -646,7 +726,20 @@
   </div>
 
   <!-- Input bar -->
-  <div class="input-bar">
+  <div class="input-bar" id="input-bar">
+
+    <!-- Video URL row (hidden by default) -->
+    <div class="video-url-row" id="video-url-row" style="display:none">
+      <label for="video-url-input" class="sr-only">Video URL</label>
+      <input
+        id="video-url-input"
+        type="url"
+        placeholder="Paste a YouTube, TikTok, or Instagram URL…"
+        autocomplete="off"
+      />
+      <button class="analyze-btn" id="analyze-btn" type="button">Analyze →</button>
+    </div>
+
     <div class="input-row-chat">
       <label for="chat-input" class="sr-only">Message</label>
       <textarea
@@ -662,7 +755,10 @@
         </svg>
       </button>
     </div>
-    <p class="input-hint">Press Enter to send · Shift+Enter for new line</p>
+    <p class="input-hint">
+      Press Enter to send · Shift+Enter for new line ·
+      <button class="video-toggle-link" id="video-toggle-btn" type="button">📹 Analyze a video</button>
+    </p>
   </div>
 
 </section>
@@ -930,6 +1026,93 @@
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+  }
+
+  // ── Auto-resize input bar → adjust messages area ─────────────────
+  const inputBar = document.getElementById('input-bar');
+  new ResizeObserver(() => {
+    messagesArea.style.bottom = inputBar.offsetHeight + 'px';
+  }).observe(inputBar);
+
+  // ── Video analysis ────────────────────────────────────────────────
+  const videoToggleBtn  = document.getElementById('video-toggle-btn');
+  const videoUrlRow     = document.getElementById('video-url-row');
+  const videoUrlInput   = document.getElementById('video-url-input');
+  const analyzeBtn      = document.getElementById('analyze-btn');
+  let videoRowVisible   = false;
+
+  videoToggleBtn.addEventListener('click', () => {
+    videoRowVisible = !videoRowVisible;
+    videoUrlRow.style.display = videoRowVisible ? 'flex' : 'none';
+    if (videoRowVisible) videoUrlInput.focus();
+    else videoUrlInput.value = '';
+  });
+
+  videoUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') analyzeVideo();
+    if (e.key === 'Escape') videoToggleBtn.click();
+  });
+
+  analyzeBtn.addEventListener('click', analyzeVideo);
+
+  async function analyzeVideo() {
+    const url = videoUrlInput.value.trim();
+    if (!url || streaming) return;
+
+    // Close the URL row
+    videoUrlInput.value = '';
+    videoUrlRow.style.display = 'none';
+    videoRowVisible = false;
+
+    streaming = true;
+    updateSendBtn();
+    analyzeBtn.disabled = true;
+
+    // Show URL as user message
+    appendUserMessage('📹 ' + url);
+
+    // Show "analyzing" placeholder
+    const aiEl = appendAiMessage('', true);
+    aiEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;color:var(--text-2);font-size:14px;padding:2px 0">
+        <div class="typing-dots" style="margin:0">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+        Downloading &amp; analyzing your video…
+      </div>`;
+
+    try {
+      const resp = await fetch('/api/analyze-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || 'Analysis failed');
+
+      // Render analysis result
+      aiEl.innerHTML = `
+        <div class="analysis-badge">
+          📹 Video Analysis · ${esc(data.platform)}${data.hasTranscript ? ' · transcript' : ''}
+        </div>
+        <div class="msg-content">${parseMarkdown(data.analysis)}</div>`;
+
+      // Add to history so follow-up questions work
+      history.push({ role: 'user', content: `Please analyze this ${data.platform} video: ${url}` });
+      history.push({ role: 'assistant', content: data.analysis });
+
+    } catch (err) {
+      aiEl.textContent = err.message || 'Could not analyze that video. Make sure the URL is public and try again.';
+    } finally {
+      streaming = false;
+      analyzeBtn.disabled = false;
+      updateSendBtn();
+      chatInput.focus();
+      scrollBottom();
+    }
   }
 </script>
 </body>
