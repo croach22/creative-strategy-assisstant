@@ -276,7 +276,7 @@ Talk like a creative director, not a cheerleader. Reference specific things you 
       /private/i.test(err.message) ? 'That video is private — paste a public URL.' :
       /too long/i.test(err.message) ? 'Video is too long — max 20 minutes.' :
       /unavailable|not available/i.test(err.message) ? 'Video unavailable. Make sure the URL is public.' :
-      'Could not analyze that video. Make sure the URL is public and try again.';
+      `Debug: ${err.message.slice(0, 300)}`;
     res.status(500).json({ error: msg });
   } finally {
     try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
