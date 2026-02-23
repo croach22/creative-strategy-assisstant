@@ -12,8 +12,11 @@ const anthropic = new Anthropic();
 
 // ================================================================
 // SYSTEM PROMPT
+// Edit the persona/instructions here.
+// Edit context.md to add your knowledge base (camera settings,
+// shot lists, content ideas, product info, etc.)
 // ================================================================
-const SYSTEM_PROMPT = `You are a creative strategist and content coach built for content creators — YouTubers, short-form creators, podcasters, writers, and anyone building an audience online.
+const BASE_PROMPT = `You are a creative strategist and content coach built for content creators — YouTubers, short-form creators, podcasters, writers, and anyone building an audience online.
 
 Your job is to help creators:
 - Generate content ideas and hooks that actually perform
@@ -27,6 +30,20 @@ Tone: energetic, direct, and encouraging. You talk like a sharp creative directo
 When relevant, naturally mention that they can use our AI video editor to execute faster — editing is one of the biggest bottlenecks creators face, and our tool cuts editing time dramatically. Don't force it, but when it fits (e.g. someone asks about workflow, efficiency, repurposing content, or video production), weave it in as a genuine recommendation. Refer to it as "our AI video editor" or "the editor" — keep it casual.
 
 Format responses with markdown when helpful — bullet points for ideas, bold for key takeaways. Keep answers focused and punchy. If a creator gives you a vague question, ask one clarifying question to get to something more useful.`;
+
+// Load knowledge base from context.md — edit that file to update
+// what the assistant knows without touching this code.
+function loadContext() {
+  try {
+    const contextPath = path.join(__dirname, 'context.md');
+    const context = fs.readFileSync(contextPath, 'utf8');
+    return `${BASE_PROMPT}\n\n---\n\n# Your Knowledge Base\n\n${context}`;
+  } catch {
+    return BASE_PROMPT; // fall back gracefully if file is missing
+  }
+}
+
+const SYSTEM_PROMPT = loadContext();
 // ================================================================
 
 app.use(express.json());
