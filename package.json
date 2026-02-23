@@ -1,0 +1,18 @@
+{
+  "name": "ai-chat-app",
+  "version": "1.0.0",
+  "description": "Email capture + AI chat powered by Claude",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "dotenv": "^17.3.1",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@railway/cli": "^4.30.3"
+  }
+}
